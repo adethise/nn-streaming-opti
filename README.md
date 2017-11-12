@@ -1,1 +1,1 @@
-# nn-streaming-opti
+Machine learning-based steaming system optimization

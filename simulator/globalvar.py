@@ -1,3 +1,4 @@
+from tdigest import TDigest
 
 numberOfNodes = 9
 numberOfSpouts = 3
@@ -21,7 +22,7 @@ l=1
 t = 0
 q = [0 for x in range(numberOfNodes)]
 c = [0 for y in range(numberOfNodes)]
-time = []
+
 
 
 # stores all values
@@ -32,6 +33,6 @@ numberOfArrivals = []
 cpu = []
 
 
+# tdigest
 
-
-
+time = TDigest()

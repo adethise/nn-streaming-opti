@@ -1,4 +1,5 @@
 import simpy
+from tdigest import TDigest
 import globalvar
 
 class Task():
@@ -22,10 +23,10 @@ class Task():
             #monitor latency
             if self.env.now > globalvar.lengthOfInterval*globalvar.l:
                 globalvar.timeToComplete.append(globalvar.time)
-                globalvar.time = []
+                globalvar.time = TDigest()
                 globalvar.l = globalvar.l + 1
             self.end = self.env.now
-            globalvar.time.append(self.end - self.start)
+            globalvar.time.update(self.end - self.start)
 
     def getID(self):
         return self.id_

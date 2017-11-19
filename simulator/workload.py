@@ -29,7 +29,7 @@ class Workload():
             executorProcess = executor.Executor(self.env, spoutNode, taskToSchedule)
             self.env.process(executorProcess.run())
             
-            yield self.env.timeout(10)
+            yield self.env.timeout(1)
             #self.reduceRequests()
 
     def addSpout(self, a_spout):

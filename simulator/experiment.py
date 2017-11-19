@@ -1,8 +1,10 @@
 import numpy as np
 import simpy
+import random
 import node
 import workload
 import globalvar
+from tdigest import TDigest
 
 
 
@@ -80,27 +82,27 @@ def runExperiment():
     print('    0.90 quantile')
     for i in range(globalvar.numberOfIntervals-1):
         if(globalvar.timeToComplete[i] != []):
-            print("    Interval " + str(i+1) + ":" + str(np.percentile(globalvar.timeToComplete[i],90)))
+            print("    Interval " + str(i+1) + ":" + str(globalvar.timeToComplete[i].percentile(90)))
         else:
             print("    Interval " + str(i+1) + ":" + str(globalvar.timeToComplete[i]))
     print("    -----")
     print('    0.95 quantile')
     for i in range(globalvar.numberOfIntervals-1):
         if(globalvar.timeToComplete[i] != []):
-            print("    Interval " + str(i+1) + ":" + str(np.percentile(globalvar.timeToComplete[i],95)))
+            print("    Interval " + str(i+1) + ":" + str(globalvar.timeToComplete[i].percentile(95)))
         else:
             print("    Interval " + str(i+1) + ":" + str(globalvar.timeToComplete[i]))
     print("    -----")
     print('    0.99 quantile')
     for i in range(globalvar.numberOfIntervals-1):
         if(globalvar.timeToComplete[i] != []):
-            print("    Interval " + str(i+1) + ":" + str(np.percentile(globalvar.timeToComplete[i],99)))
+            print("    Interval " + str(i+1) + ":" + str(globalvar.timeToComplete[i].percentile(99)))
         else:
             print("    Interval " + str(i+1) + ":" + str(globalvar.timeToComplete[i]))
     print('    0.5 quantile')
     for i in range(globalvar.numberOfIntervals-1):
         if(globalvar.timeToComplete[i] != []):
-            print("    Interval " + str(i+1) + ":" + str(np.percentile(globalvar.timeToComplete[i],50)))
+            print("    Interval " + str(i+1) + ":" + str(globalvar.timeToComplete[i].percentile(50)))
         else:
             print("    Interval " + str(i+1) + ":" + str(globalvar.timeToComplete[i]))
     print("    -----")
@@ -114,9 +116,6 @@ def runExperiment():
         print("Inteval "+ str(i+1) + ":" + str(globalvar.numberOfArrivals[i]))
 
     print('After '+ str(globalvar.i-1)+ ' intervals')
-
-
-    #print(np.sort(globalvar.timeToComplete[0])) 
 
 if __name__ == '__main__':
      runExperiment()

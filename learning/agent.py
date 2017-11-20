@@ -14,7 +14,7 @@ S_INFO = 6  # previous_action, throughput, latency_50, latency_90
 S_LEN = 8  # take how many frames in the past
 A_DIM = 3 # TODO choose which actions are available
 ACTIONS = ['A', 'B', 'C'] # TODO
-DEFAULT_ACTION = 1 #TODO
+DEFAULT_ACTION = 0 #TODO
 
 ACTOR_LR_RATE = 0.0001
 CRITIC_LR_RATE = 0.001
@@ -115,7 +115,8 @@ def main():
                            str(ACTIONS[action]) + '\t' +
                            str(throughput) + '\t' +
                            str(latency_50) + '\t' +
-                           str(latency_90) + '\n')
+                           str(latency_90) + '\t' +
+                           str(entropy_record[-1]) + '\n')
             log_file.flush()
 
             if len(r_batch) >= TRAIN_SEQ_LEN :  # do training once

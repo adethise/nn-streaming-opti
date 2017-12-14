@@ -44,6 +44,6 @@ class Simulator:
         self.write_config(self.next_job, action)
         os.environ['TOPOLOGY'] = self.next_job
         os.environ['CONF'] = JOBS[self.next_job]
-        os.system('cp %s ~/.storm/' % JOBS[self.next_job])
+        os.system('cp %s ~/.storm/' % (CONFIG_DIR + JOBS[self.next_job]))
         os.chdir('/home/ubuntu/stormbenchmark/tuning')
         os.system('bash run_nnopti.sh 1')

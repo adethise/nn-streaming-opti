@@ -45,6 +45,7 @@ class Simulator:
 
     def run_evaluation(self, action):
         self.write_config(self.next_job, action)
+        self._set_environ()
         os.system('cp %s %s' % (CONFIG_DIR + JOBS[self.next_job], STORM_CONF_DIR))
         os.chdir(BENCH_DIR)
         os.system('bash run_nnopti.sh 1')

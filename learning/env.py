@@ -25,8 +25,8 @@ JOBS = {
 
 EXEC_DIR = os.getcwd()
 CONFIG_DIR = os.getcwd() + '/yamlconfs/'
-STORM_CONF_DIR = '/home/ubuntu/.storm/'
-BENCH_DIR = '/home/ubuntu/stormbenchmark/tuning/'
+STORM_CONF_DIR = os.environ['HOME'] + '/.storm/'
+BENCH_DIR = os.environ['HOME'] + '/stormbenchmark/tuning/'
 
 class Simulator:
 
@@ -54,9 +54,10 @@ class Simulator:
     def _set_environ(self):
         os.environ['TOPOLOGY'] = self.next_job
         os.environ['CONF'] = JOBS[self.next_job]
-        os.environ['STORM_HOME'] = '~/ansible-test/storm/apache-storm-1.0.1'
-        os.environ['REDIS_HOME'] = '~/bilal/redis-3.2.0/src'
-        os.environ['TDIGEST_JAR'] = '~/bilal/TDigestService/target/TDigestService-1.0-SNAPSHOT-jar-with-dependencies.jar'
+        os.environ['STORM_HOME'] = os.environ['HOME'] + '/ansible-test/storm/apache-storm-1.0.1'
+        os.environ['REDIS_HOME'] = os.environ['HOME'] + '/bilal/redis-3.2.0/src'
+        os.environ['TDIGEST_JAR'] = os.environ['HOME'] + \
+                '/bilal/TDigestService/target/TDigestService-1.0-SNAPSHOT-jar-with-dependencies.jar'
         os.environ['BENCHMARK_TIME'] = '30' # should be 200
         os.environ['TSERVER_PORT'] = '11111'
 

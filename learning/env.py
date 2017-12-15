@@ -90,7 +90,7 @@ class Simulator:
 
         print('Collected results:', last_results)
         os.chdir(EXEC_DIR)
-        splits = last_results.split()
+        splits = last_results.split(',')
         throughput = splits[-7]
         lat_50 = splits[-6]
         lat_80 = splits[-3]

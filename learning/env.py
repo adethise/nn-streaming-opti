@@ -1,6 +1,13 @@
+from __future__ import print_function
+
+import os
+
 import yaml
 import random
-import os
+from collections import defaultdict
+
+
+# Possible actions (configurations)
 
 ACTION_LABELS = (
         'topology.workers', 'topology.acker.executors',
@@ -17,11 +24,18 @@ ACTIONS = [
         ( 9,  3, 5000,  9), (12,  3, 3000,  6),
         ]
 
+# Jobs and performance information
+
 JOBS = {
         'RollingCount': 'rollingcount.yaml',
         'RollingTopWords': 'rollingtopwords.yaml',
         'SentimentAnalysis': 'sentiment.yaml',
         }
+
+PERF_LABELS = ['throughput', 'lat_50', 'lat_80', 'lat_99']
+
+
+# Benchmark execution configuration
 
 EXEC_DIR = os.getcwd()
 CONFIG_DIR = os.getcwd() + '/yamlconfs/'
@@ -34,9 +48,14 @@ class Simulator:
         random.seed(random_seed)
         self.next_job = 'RollingCount'
 
+        self.measurements = dict()
+        for job in JOBS:
+            self.measurements[job] = defaultdict(list)
+
     def get_performance(self, action_index):
         self.run_evaluation(ACTIONS[action_index])
         results = self.collect_last_results()
+        self.measurements[self.next_job][action_index].append(results)
 
     def write_config(self, job, action):
         conf = yaml.load(open(CONFIG_DIR + JOBS[job]))
@@ -59,7 +78,7 @@ class Simulator:
         os.environ['REDIS_HOME'] = os.environ['HOME'] + '/bilal/redis-3.2.0/src'
         os.environ['TDIGEST_JAR'] = os.environ['HOME'] + \
                 '/bilal/TDigestService/target/TDigestService-1.0-SNAPSHOT-jar-with-dependencies.jar'
-        os.environ['BENCHMARK_TIME'] = '200' # should be 200
+        os.environ['BENCHMARK_TIME'] = '200' # should be 200 / fails below 100
         os.environ['TSERVER_PORT'] = '11111'
 
 
@@ -69,5 +88,11 @@ class Simulator:
             lines = csv.readlines()
             last_results = lines[-1]
 
+        print('Collected results:', last_results)
         os.chdir(EXEC_DIR)
-        return last_results
+        splits = last_results.split()
+        throughput = splits[-7]
+        lat_50 = splits[-6]
+        lat_80 = splits[-3]
+        lat_99 = splits[-1]
+        return (throughput, lat_50, lat_80, lat_99)

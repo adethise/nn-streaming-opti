@@ -36,6 +36,7 @@ class Simulator:
 
     def get_performance(self, action_index):
         self.run_evaluation(ACTIONS[action_index])
+        results = self.collect_last_results()
 
     def write_config(self, job, action):
         conf = yaml.load(open(CONFIG_DIR + JOBS[job]))
@@ -58,15 +59,15 @@ class Simulator:
         os.environ['REDIS_HOME'] = os.environ['HOME'] + '/bilal/redis-3.2.0/src'
         os.environ['TDIGEST_JAR'] = os.environ['HOME'] + \
                 '/bilal/TDigestService/target/TDigestService-1.0-SNAPSHOT-jar-with-dependencies.jar'
-        os.environ['BENCHMARK_TIME'] = '30' # should be 200
+        os.environ['BENCHMARK_TIME'] = '200' # should be 200
         os.environ['TSERVER_PORT'] = '11111'
 
 
     def collect_last_results(self):
         os.chdir(BENCH_DIR)
-        with open('results.csv', 'r') as csv:
+        with open('numbers.csv', 'r') as csv:
             lines = csv.readlines()
             last_results = lines[-1]
 
-        print('Result line:', last_results)
+        os.chdir(EXEC_DIR)
         return last_results

@@ -107,7 +107,7 @@ class Environment:
         # Record measurements and save to disk
         self.measurements[self.next_job][action_index].append(results)
         with open(MEASUREMENTS_FILE, 'w') as history:
-            pickle.dump(self.neasurements, history)
+            pickle.dump(self.measurements, history)
         with open(ACTIONS_LOG_FILE, 'a') as action_log:
             action_log.write(
                     str(action_index).rjust(3)

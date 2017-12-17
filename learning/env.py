@@ -158,8 +158,8 @@ class Environment:
         print('Collected results:', last_results)
         os.chdir(EXEC_DIR)
         splits = last_results.split(',')
-        throughput = splits[-7]
-        lat_50 = splits[-6]
-        lat_80 = splits[-3]
-        lat_99 = splits[-1]
+        throughput = int(splits[-7])
+        lat_50 = float(splits[-6])
+        lat_80 = float(splits[-3])
+        lat_99 = float(splits[-1])
         return (throughput, lat_50, lat_80, lat_99)

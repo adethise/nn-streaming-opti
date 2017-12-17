@@ -87,7 +87,7 @@ class Environment:
         samples = []
         for action in sampled_actions:
             measurement = random.choice(self.measurements[job][action])
-            samples.append(measurement)
+            samples.append((action, measurement))
 
         # Record the next job secretely and return the training
         self.next_job = job

@@ -111,7 +111,7 @@ class Environment:
         # If we have past measurements, optionally reuse them
         past_measurements = self.measurements[self.next_job][action_index]
         if len(past_measurements) > 0:
-            thresh = 1 / (1 + len(past_measurements)):
+            thresh = 1 / (1 + len(past_measurements))
             if random.random() < thresh:
                 return random.choice(past_measurements)
 

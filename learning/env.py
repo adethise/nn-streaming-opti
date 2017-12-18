@@ -103,8 +103,9 @@ class Environment:
         # Record the chosen action for each hidden topology
         with open(ACTIONS_LOG_FILE, 'a') as action_log:
             action_log.write(
-                    str(action_index).rjust(3)
-                    + self.next_job.ljust(18)
+                    str(action_index).rjust(2)
+                    + ' '
+                    + self.next_job.ljust(17)
                     + '\n'
                     )
 

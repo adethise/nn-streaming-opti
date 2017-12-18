@@ -10,16 +10,16 @@ import a3c
 import env
 
 
-S_INFO = 6  # previous_action, throughput, latency_50, latency_90
-S_LEN = 8  # take how many frames in the past
-A_DIM = 3 # TODO choose which actions are available
-ACTIONS = ['A', 'B', 'C'] # TODO
-DEFAULT_ACTION = 0 #TODO
+S_INFO = len(env.PERF_LABELS) + 1 # previous_action, measurements
+S_LEN = env.ACTIONS_NUM_SAMPLES # take how many frames in the past
+A_DIM = len(env.ACTIONS)
+ACTIONS = env.ACTIONS
+DEFAULT_ACTION = 0
 
 ACTOR_LR_RATE = 0.0001
 CRITIC_LR_RATE = 0.001
-TRAIN_SEQ_LEN = 100  # take as a train batch
-MODEL_SAVE_INTERVAL = 100
+TRAIN_SEQ_LEN = 10 # take as a train batch (short - we want to trian fast)
+MODEL_SAVE_INTERVAL = 10
 BUFFER_NORM_FACTOR = 10.0
 
 RANDOM_SEED = 42
@@ -27,7 +27,8 @@ RAND_RANGE = 1000000
 GRADIENT_BATCH_SIZE = 16
 SUMMARY_DIR = './results'
 LOG_FILE = './results/log'
-# log in format of ??? time_stamp bit_rate buffer_size rebuffer_time chunk_size download_time reward
+# log in format of timestamp, config, throughput, lat_50, lat_80, lat_99,
+# reward, entropy
 NN_MODEL = None
 
 
@@ -38,7 +39,7 @@ def main():
     if not os.path.exists(SUMMARY_DIR):
         os.makedirs(SUMMARY_DIR)
 
-    simulator = env.Simulator() # TODO
+    simulator = env.Simulator()
 
     with tf.Session() as sess, open(LOG_FILE, 'wb') as log_file:
 
@@ -64,14 +65,8 @@ def main():
 
         epoch = 0
 
-        action = DEFAULT_ACTION
-
-        action_vec = np.zeros(A_DIM)
-        action_vec[action] = 1
-
-        s_batch = [np.zeros((S_INFO, S_LEN))]
-        s_batch[-1][0] = S_LEN * [1]
-        a_batch = [action_vec]
+        s_batch = []
+        a_batch = []
         r_batch = []
         entropy_record = []
 
@@ -79,29 +74,25 @@ def main():
         critic_gradient_batch = []
 
         while True:  # serve stream processing forever
-            # the action is from the last decision
-            # this is to make the framework similar to the real
-            throughput, latency_50, latency_90 = simulator.get_performance(ACTIONS[action])
+            #########
+            # State #
+            #########
+            # the action is from past measurements
+            history = simulator.get_training_measurements()
 
-            # reward is ???
-            reward = throughput # TODO
-            r_batch.append(reward)
-
-            # retrieve previous state
-            if len(s_batch) == 0:
-                state = [np.zeros((S_INFO, S_LEN))]
-            else:
-                state = np.array(s_batch[-1], copy=True)
-
-            # dequeue history record
-            state = np.roll(state, -1, axis=1)
-
+            state = np.zeros((S_INFO, S_LEN))
             # this should be S_INFO number of terms
-            state[0, -1] = action
-            state[1, -1] = throughput
-            state[2, -1] = latency_50
-            state[3, -1] = latency_90
+            for i, (action, perf) in enumerate(history):
+                throughput, latency_50, latency_80, latency_99 = perf
+                state[0, -i-1] = action
+                state[1, -i-1] = throughput
+                state[2, -i-1] = latency_50
+                state[3, -i-1] = latency_80
+                state[4, -i-1] = latency_99
 
+            ##########
+            # Action #
+            ##########
             action_prob = actor.predict(np.reshape(state, (1, S_INFO, S_LEN)))
             action_cumsum = np.cumsum(action_prob)
             action = (action_cumsum > np.random.randint(1, RAND_RANGE) / float(RAND_RANGE)).argmax()
@@ -110,21 +101,44 @@ def main():
 
             entropy_record.append(a3c.compute_entropy(action_prob[0]))
 
+            ##########
+            # Reward #
+            ##########
+            throughput, latency_50, latency_80, latency_99 = simulator.get_performance(action)
+
+            # reward is throughput minus sum of latencies
+            reward = throughput / 100
+                     - latency_50
+                     - latency_80
+                     - latency_99
+
+            ##############
+            # Recordings #
+            ##############
+            r_batch.append(reward)
+            s_batch.append(state)
+
+            action_vec = np.zeros(A_DIM)
+            action_vec[action] = 1
+            a_batch.append(action_vec)
+
             # log time_stamp, bit_rate, buffer_size, reward
-            log_file.write(str(epoch) + '\t' +
-                           str(ACTIONS[action]) + '\t' +
-                           str(throughput) + '\t' +
-                           str(latency_50) + '\t' +
-                           str(latency_90) + '\t' +
-                           str(entropy_record[-1]) + '\n')
+            log_file.write(str(epoch) + '\t'
+                           + str(ACTIONS[action]) + '\t'
+                           + str(throughput) + '\t'
+                           + '%.2f' % latency_50 + '\t'
+                           + '%.2f' % latency_80 + '\t'
+                           + '%.2f' % latency_99 + '\t'
+                           + '%.2f' % reward + '\t'
+                           + str(entropy_record[-1]) + '\n')
             log_file.flush()
 
             if len(r_batch) >= TRAIN_SEQ_LEN :  # do training once
 
                 actor_gradient, critic_gradient, td_batch = \
-                    a3c.compute_gradients(s_batch=np.stack(s_batch[1:], axis=0),  # ignore the first chuck
-                                          a_batch=np.vstack(a_batch[1:]),  # since we don't have the
-                                          r_batch=np.vstack(r_batch[1:]),  # control over it
+                    a3c.compute_gradients(s_batch=np.stack(s_batch, axis=0),
+                                          a_batch=np.vstack(a_batch),
+                                          r_batch=np.vstack(r_batch),
                                           terminal=False, actor=actor, critic=critic)
                 td_loss = np.mean(td_batch)
 
@@ -178,11 +192,6 @@ def main():
                 del a_batch[:]
                 del r_batch[:]
 
-            s_batch.append(state)
-
-            action_vec = np.zeros(A_DIM)
-            action_vec[action] = 1
-            a_batch.append(action_vec)
 
 if __name__ == '__main__':
     main()

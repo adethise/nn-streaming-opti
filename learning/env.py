@@ -25,6 +25,8 @@ ACTIONS = [
         ( 9,  3, 5000,  9), (12,  3, 3000,  6),
         ]
 
+ACTIONS_NUM_SAMPLES = 6
+
 # Jobs and performance information
 
 JOBS = {
@@ -47,7 +49,7 @@ CONFIG_DIR = EXEC_DIR + '/yamlconfs/'
 STORM_CONF_DIR = os.environ['HOME'] + '/.storm/'
 BENCH_DIR = os.environ['HOME'] + '/stormbenchmark/tuning/'
 
-class Environment:
+class Simulator:
 
     def __init__(self, random_seed = 42):
         """
@@ -78,7 +80,7 @@ class Environment:
         # Choose the number of information samples returned in [0,8)
         num_samples = min(
                 len(self.measurements[job]),
-                random.randrange(0, 7)
+                random.randrange(0, ACTIONS_NUM_SAMPLES)
                 )
         # Select which actions to return and choose a random measurement
         available_actions = self.measurements[job].keys()
@@ -125,6 +127,8 @@ class Environment:
         with open(MEASUREMENTS_FILE, 'w') as history:
             pickle.dump(self.measurements, history)
 
+        return results
+
     def write_config(self, job, action):
         """
         Write the configuration corresponding to this job and action in the
@@ -164,6 +168,7 @@ class Environment:
         with open('numbers.csv', 'r') as csv:
             lines = csv.readlines()
             last_results = lines[-1].strip()
+        os.remove('number.csv')
 
         print('Collected results:', last_results)
         os.chdir(EXEC_DIR)

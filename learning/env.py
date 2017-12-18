@@ -48,6 +48,7 @@ EXEC_DIR = os.getcwd()
 CONFIG_DIR = EXEC_DIR + '/yamlconfs/'
 STORM_CONF_DIR = os.environ['HOME'] + '/.storm/'
 BENCH_DIR = os.environ['HOME'] + '/stormbenchmark/tuning/'
+RESULTS_FILE = 'numbers.csv'
 
 class Simulator:
 
@@ -165,10 +166,10 @@ class Simulator:
         Collect the last results written to file by run_nnopti.sh.
         """
         os.chdir(BENCH_DIR)
-        with open('numbers.csv', 'r') as csv:
+        with open(RESULTS_FILE, 'r') as csv:
             lines = csv.readlines()
             last_results = lines[-1].strip()
-        os.remove('number.csv')
+        os.remove(RESULTS_FILE)
 
         print('Collected results:', last_results)
         os.chdir(EXEC_DIR)

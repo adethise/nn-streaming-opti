@@ -43,7 +43,7 @@ ACTIONS_LOG_FILE = 'hidden_actions.log'
 # Benchmark execution configuration
 
 EXEC_DIR = os.getcwd()
-CONFIG_DIR = os.getcwd() + '/yamlconfs/'
+CONFIG_DIR = EXEC_DIR + '/yamlconfs/'
 STORM_CONF_DIR = os.environ['HOME'] + '/.storm/'
 BENCH_DIR = os.environ['HOME'] + '/stormbenchmark/tuning/'
 
@@ -100,20 +100,29 @@ class Environment:
         input is generated.
         The action taken and resulting measurements will be saved to disk.
         """
+        # Record the chosen action for each hidden topology
+        with open(ACTIONS_LOG_FILE, 'a') as action_log:
+            action_log.write(
+                    str(action_index).rjust(3)
+                    + self.next_job.ljust(18)
+                    + '\n'
+                    )
+
+        # If we have past measurements, optionally reuse them
+        past_measurements = self.measurements[self.next_job][action_index]
+        if len(past_measurements) > 0:
+            thresh = 1 / (1 + len(past_measurements)):
+            if random.random() < thresh:
+                return random.choice(past_measurements)
+
         # Run the configuration and collect results
         self.run_evaluation(ACTIONS[action_index])
         results = self.collect_last_results()
 
         # Record measurements and save to disk
-        self.measurements[self.next_job][action_index].append(results)
+        past_measurements.append(results)
         with open(MEASUREMENTS_FILE, 'w') as history:
             pickle.dump(self.measurements, history)
-        with open(ACTIONS_LOG_FILE, 'a') as action_log:
-            action_log.write(
-                    str(action_index).rjust(3)
-                    + self.next_job.rjust(18)
-                    + '\n'
-                    )
 
     def write_config(self, job, action):
         """

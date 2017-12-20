@@ -18,7 +18,7 @@ DEFAULT_ACTION = 0
 
 ACTOR_LR_RATE = 0.0001
 CRITIC_LR_RATE = 0.001
-TRAIN_SEQ_LEN = 10 # take as a train batch (short - we want to trian fast)
+TRAIN_SEQ_LEN = 10 # take as a train batch
 MODEL_SAVE_INTERVAL = 10
 BUFFER_NORM_FACTOR = 10.0
 
@@ -107,10 +107,11 @@ def main():
             throughput, latency_50, latency_80, latency_99 = simulator.get_performance(action)
 
             # reward is throughput minus sum of latencies
-            reward = throughput / 100
+            reward = (throughput / 100
                      - latency_50
                      - latency_80
                      - latency_99
+                     )
 
             ##############
             # Recordings #
@@ -124,12 +125,12 @@ def main():
 
             # log time_stamp, bit_rate, buffer_size, reward
             log_file.write(str(epoch) + '\t'
-                           + str(ACTIONS[action]) + '\t'
+                           + str(action) + '\t'
+                           + '%.2f' % reward + '\t'
                            + str(throughput) + '\t'
                            + '%.2f' % latency_50 + '\t'
                            + '%.2f' % latency_80 + '\t'
                            + '%.2f' % latency_99 + '\t'
-                           + '%.2f' % reward + '\t'
                            + str(entropy_record[-1]) + '\n')
             log_file.flush()
 

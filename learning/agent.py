@@ -16,8 +16,8 @@ A_DIM = len(env.ACTIONS)
 ACTIONS = env.ACTIONS
 DEFAULT_ACTION = 0
 
-ACTOR_LR_RATE = 0.0001
-CRITIC_LR_RATE = 0.001
+ACTOR_LR_RATE = 0.00003
+CRITIC_LR_RATE = 0.0003
 TRAIN_SEQ_LEN = 10 # take as a train batch
 MODEL_SAVE_INTERVAL = 10
 BUFFER_NORM_FACTOR = 10.0
@@ -159,6 +159,9 @@ def main():
 
                 writer.add_summary(summary_str, epoch)
                 writer.flush()
+
+                if np.mean(entropy_record) < 1e-3:
+                    break
 
                 entropy_record = []
 

@@ -81,7 +81,7 @@ class Simulator:
         # Choose the number of information samples returned in [0,8)
         num_samples = min(
                 len(self.measurements[job]),
-                random.randrange(1, ACTIONS_NUM_SAMPLES)
+                random.randrange(3, ACTIONS_NUM_SAMPLES + 1)
                 )
         # Select which actions to return and choose a random measurement
         available_actions = self.measurements[job].keys()

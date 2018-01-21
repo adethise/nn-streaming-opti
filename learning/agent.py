@@ -20,7 +20,6 @@ ACTOR_LR_RATE = 0.00003
 CRITIC_LR_RATE = 0.0003
 TRAIN_SEQ_LEN = 10 # take as a train batch
 MODEL_SAVE_INTERVAL = 10
-BUFFER_NORM_FACTOR = 10.0
 
 RANDOM_SEED = 42
 RAND_RANGE = 1000000
@@ -73,7 +72,7 @@ def main():
         actor_gradient_batch = []
         critic_gradient_batch = []
 
-        while True:  # serve stream processing forever
+        while True: # serve stream processing forever
             #########
             # State #
             #########
@@ -160,8 +159,6 @@ def main():
                 writer.add_summary(summary_str, epoch)
                 writer.flush()
 
-                if np.mean(entropy_record) < 1e-3:
-                    break
 
                 entropy_record = []
 

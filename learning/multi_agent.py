@@ -14,8 +14,8 @@ A_DIM = len(env.ACTIONS)
 ACTIONS = env.ACTIONS
 DEFAULT_ACTION = 0
 
-ACTOR_LR_RATE = 0.00003
-CRITIC_LR_RATE = 0.0003
+ACTOR_LR_RATE = 0.0001
+CRITIC_LR_RATE = 0.001
 NUM_AGENTS = 4
 TRAIN_SEQ_LEN = 20 # take as a train batch
 MODEL_SAVE_INTERVAL = 20
@@ -103,7 +103,7 @@ def central_agent(net_params_queues, exp_queues):
                 actor_gradient_batch.append(actor_gradient)
                 critic_gradient_batch.append(critic_gradient)
 
-                total_reward += np.sum(r_batch) / len(r_batch)
+                total_reward += np.sum(r_batch)
                 total_td_loss += np.sum(td_batch)
                 total_batch_len += len(r_batch)
                 total_agents += 1.0

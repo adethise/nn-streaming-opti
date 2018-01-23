@@ -81,7 +81,7 @@ class Simulator:
         # Choose the number of information samples returned in [0,8)
         num_samples = min(
                 len(self.measurements[job]),
-                random.randrange(3, ACTIONS_NUM_SAMPLES + 1)
+                random.randrange(2, ACTIONS_NUM_SAMPLES + 1)
                 )
         # Select which actions to return and choose a random measurement
         available_actions = self.measurements[job].keys()
@@ -113,12 +113,14 @@ class Simulator:
                     )
 
         # If we have past measurements, optionally reuse them
+        # The more measurements we have, the less we need to run the
+        # configuration again
         past_measurements = self.measurements[self.next_job][action_index]
         if len(past_measurements) > 0:
             #thresh = 1 / (1 + len(past_measurements))
             thresh = 0 # this setup can't run the tests
             if random.random() >= thresh:
-                return self._blur(random.choice(past_measurements))
+                return random.choice(past_measurements)
 
         # Run the configuration and collect results
         self.run_evaluation(ACTIONS[action_index])
@@ -130,9 +132,6 @@ class Simulator:
             pickle.dump(self.measurements, history)
 
         return results
-
-    def _blur(self, data, factor = 0):
-        return tuple(map(lambda x: x * random.normalvariate(1, factor), data))
 
     def write_config(self, job, action):
         """

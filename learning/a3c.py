@@ -11,6 +11,21 @@ ENTROPY_EPS = 1e-6
 S_INFO = len(env.PERF_LABELS) + 1
 
 
+def create_network(inputs, s_dim):
+    splits = []
+    for i in range(s_dim[1]):
+        #splits.append(tflearn.conv_1d(inputs[:, :, i:i+1], 128, 4,
+        #    activation='relu'))
+        splits.append(tflearn.fully_connected(inputs[:, :, i:i+1], 128,
+            activation='relu'))
+    splits_flat = [tflearn.flatten(split) for split in splits]
+    merge_net = tflearn.merge(splits_flat, 'concat')
+
+    for i in range(8):
+        merge_net = tflearn.fully_connected(merge_net, 128, activation='relu')
+    return merge_net
+
+
 class ActorNetwork(object):
     """
     Input to the network is the state, output is the distribution
@@ -63,16 +78,7 @@ class ActorNetwork(object):
         with tf.variable_scope('actor'):
             inputs = tflearn.input_data(shape=[None, self.s_dim[0], self.s_dim[1]])
 
-            splits = []
-            for i in range(self.s_dim[1]):
-                splits.append(tflearn.conv_1d(inputs[:, :, i:i+1], 128, 4,
-                    activation='relu'))
-                #splits.append(tflearn.fully_connected(inputs[:, :, i:i+1], 128,
-                #    activation='relu'))
-            splits_flat = [tflearn.flatten(split) for split in splits]
-            merge_net = tflearn.merge(splits_flat, 'concat')
-
-            dense_net_0 = tflearn.fully_connected(merge_net, 128, activation='relu')
+            dense_net_0 = create_network(inputs, self.s_dim)
             out = tflearn.fully_connected(dense_net_0, self.a_dim, activation='softmax')
 
             return inputs, out
@@ -157,16 +163,7 @@ class CriticNetwork(object):
         with tf.variable_scope('critic'):
             inputs = tflearn.input_data(shape=[None, self.s_dim[0], self.s_dim[1]])
 
-            splits = []
-            for i in range(self.s_dim[1]):
-                splits.append(tflearn.conv_1d(inputs[:, :, i:i+1], 128, 4,
-                    activation='relu'))
-                #splits.append(tflearn.fully_connected(inputs[:, :, i:i+1], 128,
-                #    activation='relu'))
-            splits_flat = [tflearn.flatten(split) for split in splits]
-            merge_net = tflearn.merge(splits_flat, 'concat')
-
-            dense_net_0 = tflearn.fully_connected(merge_net, 128, activation='relu')
+            dense_net_0 = create_network(inputs, self.s_dim)
             out = tflearn.fully_connected(dense_net_0, 1, activation='linear')
 
             return inputs, out

@@ -21,7 +21,7 @@ def create_network(inputs, s_dim):
     splits_flat = [tflearn.flatten(split) for split in splits]
     merge_net = tflearn.merge(splits_flat, 'concat')
 
-    for i in range(8):
+    for i in range(5):
         merge_net = tflearn.fully_connected(merge_net, 128, activation='relu')
     return merge_net
 

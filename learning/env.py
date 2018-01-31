@@ -104,13 +104,14 @@ class Simulator:
         The action taken and resulting measurements will be saved to disk.
         """
         # Record the chosen action for each hidden topology
-        with open(ACTIONS_LOG_FILE, 'a') as action_log:
-            action_log.write(
-                    str(action_index).rjust(2)
-                    + ' '
-                    + self.next_job.ljust(17)
-                    + '\n'
-                    )
+        try:
+            with open(ACTIONS_LOG_FILE, 'a') as action_log:
+                action_log.write(
+                        str(action_index).rjust(2) + ' '
+                        + self.next_job.ljust(17) + '\n'
+                        )
+        except IOError:
+            pass # Conflict from multiprocess - drop the data
 
         # If we have past measurements, optionally reuse them
         # The more measurements we have, the less we need to run the

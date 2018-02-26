@@ -98,42 +98,38 @@ class Run:
         '''
         Save this run under `runs_dir`.
         '''
-        savedir = os.path.join(runs_dir, self.run_name)
-        os.makedirs(savedir) # Returns an error if the folder already exists
+        filename = os.path.join(runs_dir, self.run_name + '.json')
 
         # Multiple types of information will be saved in separate files
         # for simplicity and human-readability
 
         # Save the metadata
         # This should include collected information such as errors or system status
-        with open(os.path.join(savedir, 'metadata'), 'x') as _file:
-            json.dump({'topology': self.topology, 'timestamp': self.timestamp}, _file, indent = 4)
+        savedata = dict()
+        savedata['topology'] = self.topology
+        savedata['timestamp'] = self.timestamp
+        savedata['config'] = self.config
+        savedata['results'] = self.results
 
-        # Save the configuration for this run
-        with open(os.path.join(savedir, 'config'), 'x') as _file:
-            json.dump(self.config, _file, indent = 4)
+        # Save metadata, configuration and measurements
+        with open(filename, 'x') as _file: # Throws an error if file exists
+            json.dump(savedata, _file, indent = 4)
 
-        # Save the measurements for this run
-        with open(os.path.join(savedir, 'results'), 'x') as _file:
-            json.dump(self.results, _file, indent = 4)
 
     @staticmethod
     def load(run_name, runs_dir = RUNS_DIR):
         '''
         Loads and returns a previous run. Complement of save().
         '''
-        savedir = os.path.join(runs_dir, run_name)
+        filename = os.path.join(runs_dir, run_name + '.json')
 
-        with open(os.path.join(savedir, 'metadata')) as _file:
-            metadata = json.load(_file)
-            topology = metadata['topology']
-            timestamp = metadata['timestamp']
+        with open(filename) as _file:
+            savedata = json.load(_file)
 
-        with open(os.path.join(savedir, 'config')) as _file:
-            config = json.load(_file)
-
-        with open(os.path.join(savedir, 'results')) as _file:
-            results = json.load(_file)
+        topology = savedata['topology']
+        timestamp = savedata['timestamp']
+        config = savedata['config']
+        results = savedata['results']
 
         return Run(topology, timestamp, config, results, run_name = run_name)
 

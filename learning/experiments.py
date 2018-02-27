@@ -91,13 +91,18 @@ class Run:
         if run_name:
             self.run_name = run_name
         else:
-            self.run_name = os.path.join(self.topology, self.timestamp)
+            self.run_name = self.topology + '_' + self.timestamp
 
 
     def save(self, runs_dir = RUNS_DIR):
         '''
         Save this run under `runs_dir`.
         '''
+        try:
+            os.mkdir(runs_dir)
+        except FileExistsError:
+            pass
+
         filename = os.path.join(runs_dir, self.run_name + '.json')
 
         # Multiple types of information will be saved in separate files

@@ -58,8 +58,17 @@ class TopologyRunner:
         return self.runs[-1]
 
 
+def _random_config(params):
+    '''
+    Create a random configuration from a configurable_params dict.
+    This can be used to generate random samples.
+    '''
+    import random
+    return {k: random.choice(v) for k, v in params.items()}
+
+
 if __name__ == '__main__':
     rc = experiments.Topology.load('RollingCount')
     runner = TopologyRunner(rc)
 
-    runner.run({k: v[0] for k, v in rc.configurable_params.items()})
+    runner.run(_random_config(rc.configurable_params))

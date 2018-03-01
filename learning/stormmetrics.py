@@ -14,11 +14,17 @@ JAR_FILE = os.path.join(os.environ['HOME'], 'stormbenchmark/target/storm-benchma
 
 RUN_TIME_SECONDS = 200
 
+METRICS = { # Lenght of each metrics information
+        'throughput': 1,
+        'tail_latencies': 5, # lat_50, lat_80, lat_90, lat_95, lat_99
+        }
+
 
 class TopologyRunner:
     def __init__(self, topology):
         self.topology = topology
         self.runs = list()
+        self.metrics = METRICS
 
     def run(self, params, save = True):
         timestamp = datetime.utcnow().strftime('%Y-%m-%dT%H:%M')
@@ -44,7 +50,7 @@ class TopologyRunner:
         except subprocess.TimeoutExpired:
             bench.terminate()
 
-        results = {'returncode': bench.returncode}
+        results = {'returncode': [bench.returncode]}
         os.unlink(config_file)
 
         logging.info('Saving the results...')

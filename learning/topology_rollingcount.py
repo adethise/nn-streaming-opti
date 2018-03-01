@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import experiments
 
 rc_name = 'RollingCount'

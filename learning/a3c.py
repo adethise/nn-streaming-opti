@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import numpy as np
 import tensorflow as tf
 import tflearn
@@ -5,25 +7,71 @@ import tflearn
 import env
 
 GAMMA = 0.99
-A_DIM = len(env.ACTIONS)
 ENTROPY_WEIGHT = 0.5
 ENTROPY_EPS = 1e-6
-S_INFO = len(env.PERF_LABELS) + 1
+
+NETWORK_DEPTH = 3
+
+'''
+Implements the A3C algorithm and the neural network for the performance
+optimization problem.
+
+The input of the model is the following:
+    a list of vectors, each of length :s_lengths[i]:, stored in a 3D array
+
+    **Example**: s_lengths = [1, 3, 4]
+    metrics: [[1200],
+              [48, 99, 120],
+              [0.1, 0.3, 0.2, 0.4]]
+
+    inputs: [[[1200,    0,    0,    0],
+              [  48,   99,  120,    0],
+              [ 0.1,  0.3,  0.2,  0.4]]]
+
+    N.B.: the value passed to predict() is the :inputs: array.
+
+The output of the model is the following:
+    a list of vectors, each of length :a_dims[i]:
+
+    **Example**: a_dims = [2, 5, 5]
+    outputs: [[0, 1],
+              [1, 0, 0, 0, 0],
+              [0, 0, 1, 0, 0]]
+'''
 
 
-def create_network(inputs, s_dim):
-    splits = []
-    for i in range(s_dim[1]):
-        #splits.append(tflearn.conv_1d(inputs[:, :, i:i+1], 128, 4,
-        #    activation='relu'))
-        splits.append(tflearn.fully_connected(inputs[:, :, i:i+1], 128,
-            activation='relu'))
-    splits_flat = [tflearn.flatten(split) for split in splits]
-    merge_net = tflearn.merge(splits_flat, 'concat')
+def create_network(a_dims, s_lengths, last_layer = 'softmax'):
+    '''
+    Create the neural network.
 
-    for i in range(5):
-        merge_net = tflearn.fully_connected(merge_net, 128, activation='relu')
-    return merge_net
+    :a_dim: array containing the dimension space for each action
+    :s_len: array containing the length of each metric information
+    :last_layer: activation mode for the output neurons
+    '''
+    inputs = tflearn.input_data(shape=[None, len(s_lengths), max(s_lengths)])
+    splits = list()
+
+    # Add a convolution layer for each input vector
+    for i, s_len in enumerate(s_lengths):
+        splits.append(tflearn.conv_1d(inputs[:, i:i+1, :s_len], 128, 4, activation = 'relu'))
+
+    # Merge all initial convolution layers
+    dense_net = tflearn.merge(splits, 'concat')
+
+    # Hidden layers
+    for _ in range(NETWORK_DEPTH):
+        dense_net = tflearn.conv_1d(dense_net, 128, 4, activation = 'relu')
+
+    # Add one relu and one softmax output layer for each type of action
+    # The layers have as many neurons as possible choices for each action
+    outputs = list()
+    for a_dim in a_dims:
+        out = tflearn.fully_connected(dense_net, 128, activation = 'relu')
+        outputs.append(tflearn.fully_connected(out, a_dim, activation = last_layer))
+
+    # A tuple of tensors is a valid input for most tflearn functions
+    return inputs, tuple(outputs)
+
 
 
 class ActorNetwork(object):
@@ -31,14 +79,14 @@ class ActorNetwork(object):
     Input to the network is the state, output is the distribution
     of all actions.
     """
-    def __init__(self, sess, state_dim, action_dim, learning_rate):
+    def __init__(self, sess, a_dims, s_lengths, learning_rate):
         self.sess = sess
-        self.s_dim = state_dim
-        self.a_dim = action_dim
+        self.a_dims = a_dims
+        self.s_lengths = s_lengths
         self.lr_rate = learning_rate
 
         # Create the actor network
-        self.inputs, self.out = self.create_actor_network()
+        self.inputs, self.outputs = self.create_actor_network()
 
         # Get all network parameters
         self.network_params = \
@@ -53,19 +101,22 @@ class ActorNetwork(object):
         for idx, param in enumerate(self.input_network_params):
             self.set_network_params_op.append(self.network_params[idx].assign(param))
 
-        # Selected action, 0-1 vector
-        self.acts = tf.placeholder(tf.float32, [None, self.a_dim])
+        # Selected actions, tuple of 0-1 vectors
+        acts = list()
+        for a_dim in self.a_dims:
+            acts.append(tf.placeholder(tf.float32, [None, a_dim]))
+        self.acts = tuple(acts)
 
         # This gradient will be provided by the critic network
-        self.act_grad_weights = tf.placeholder(tf.float32, [None, 1])
+        self.act_grad_weights = tuple(tf.placeholder(tf.float32, [None, 1]) for _ in self.a_dims)
 
         # Compute the objective (log action_vector and entropy)
         self.obj = tf.reduce_sum(tf.multiply(
-                       tf.log(tf.reduce_sum(tf.multiply(self.out, self.acts),
+                       tf.log(tf.reduce_sum(tf.multiply(self.outputs, self.acts),
                                             reduction_indices=1, keep_dims=True)),
                        -self.act_grad_weights)) \
-                   + ENTROPY_WEIGHT * tf.reduce_sum(tf.multiply(self.out,
-                                                           tf.log(self.out + ENTROPY_EPS)))
+                   + ENTROPY_WEIGHT * tf.reduce_sum(tf.multiply(self.outputs,
+                                                           tf.log(self.outputs + ENTROPY_EPS)))
 
         # Combine the gradients here
         self.actor_gradients = tf.gradients(self.obj, self.network_params)
@@ -76,12 +127,7 @@ class ActorNetwork(object):
 
     def create_actor_network(self):
         with tf.variable_scope('actor'):
-            inputs = tflearn.input_data(shape=[None, self.s_dim[0], self.s_dim[1]])
-
-            dense_net_0 = create_network(inputs, self.s_dim)
-            out = tflearn.fully_connected(dense_net_0, self.a_dim, activation='softmax')
-
-            return inputs, out
+            return create_network(self.a_dims, self.s_lengths)
 
     def train(self, inputs, acts, act_grad_weights):
 
@@ -92,7 +138,7 @@ class ActorNetwork(object):
         })
 
     def predict(self, inputs):
-        return self.sess.run(self.out, feed_dict={
+        return self.sess.run(self.outputs, feed_dict={
             self.inputs: inputs
         })
 
@@ -122,13 +168,14 @@ class CriticNetwork(object):
     Input to the network is the state and action, output is V(s).
     On policy: the action must be obtained from the output of the Actor network.
     """
-    def __init__(self, sess, state_dim, learning_rate):
+    def __init__(self, sess, a_dims, s_lengths, learning_rate):
         self.sess = sess
-        self.s_dim = state_dim
+        self.a_dims = a_dims
+        self.s_lengths = s_lengths
         self.lr_rate = learning_rate
 
         # Create the critic network
-        self.inputs, self.out = self.create_critic_network()
+        self.inputs, self.outputs = self.create_critic_network()
 
         # Get all network parameters
         self.network_params = \
@@ -144,13 +191,13 @@ class CriticNetwork(object):
             self.set_network_params_op.append(self.network_params[idx].assign(param))
 
         # Network target V(s)
-        self.td_target = tf.placeholder(tf.float32, [None, 1])
+        self.td_target = tuple(tf.placeholder(tf.float32, [None, 1]) for _ in self.a_dims)
 
         # Temporal Difference, will also be weights for actor_gradients
-        self.td = tf.subtract(self.td_target, self.out)
+        self.td = tf.subtract(self.td_target, self.outputs)
 
         # Mean square error
-        self.loss = tflearn.mean_square(self.td_target, self.out)
+        self.loss = tflearn.mean_square(self.td_target, self.outputs)
 
         # Compute critic gradient
         self.critic_gradients = tf.gradients(self.loss, self.network_params)
@@ -161,12 +208,7 @@ class CriticNetwork(object):
 
     def create_critic_network(self):
         with tf.variable_scope('critic'):
-            inputs = tflearn.input_data(shape=[None, self.s_dim[0], self.s_dim[1]])
-
-            dense_net_0 = create_network(inputs, self.s_dim)
-            out = tflearn.fully_connected(dense_net_0, 1, activation='linear')
-
-            return inputs, out
+            return create_network(self.a_dims, self.s_lengths, last_layer = 'linear')
 
     def train(self, inputs, td_target):
         return self.sess.run([self.loss, self.optimize], feed_dict={

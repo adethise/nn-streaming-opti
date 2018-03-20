@@ -40,7 +40,7 @@ The output of the model is the following:
 '''
 
 
-def create_network(a_dims, s_lengths, last_layer = 'softmax'):
+def create_network(s_lengths):
     '''
     Create the neural network.
 
@@ -53,24 +53,16 @@ def create_network(a_dims, s_lengths, last_layer = 'softmax'):
 
     # Add a convolution layer for each input vector
     for i, s_len in enumerate(s_lengths):
-        splits.append(tflearn.conv_1d(inputs[:, i:i+1, :s_len], 128, 4, activation = 'relu'))
+        splits.append(tflearn.conv_1d(inputs[:, i:i+1, :s_len], 128, 4, activation = 'relu', name = f'Input{i}'))
 
     # Merge all initial convolution layers
-    dense_net = tflearn.merge(splits, 'concat')
+    dense_net = tflearn.merge(splits, 'concat', name = 'MergeNet')
 
     # Hidden layers
-    for _ in range(NETWORK_DEPTH):
-        dense_net = tflearn.conv_1d(dense_net, 128, 4, activation = 'relu')
+    for i in range(NETWORK_DEPTH):
+        dense_net = tflearn.conv_1d(dense_net, 128, 4, activation = 'relu', name = f'Dense{i}')
 
-    # Add one relu and one softmax output layer for each type of action
-    # The layers have as many neurons as possible choices for each action
-    outputs = list()
-    for a_dim in a_dims:
-        out = tflearn.fully_connected(dense_net, 128, activation = 'relu')
-        outputs.append(tflearn.fully_connected(out, a_dim, activation = last_layer))
-
-    # A tuple of tensors is a valid input for most tflearn functions
-    return inputs, tuple(outputs)
+    return inputs, dense_net
 
 
 
@@ -96,27 +88,28 @@ class ActorNetwork(object):
         self.input_network_params = []
         for param in self.network_params:
             self.input_network_params.append(
-                tf.placeholder(tf.float32, shape=param.get_shape()))
+                tf.placeholder(tf.float32, shape=param.get_shape(), name = 'NetworkParam'))
         self.set_network_params_op = []
         for idx, param in enumerate(self.input_network_params):
             self.set_network_params_op.append(self.network_params[idx].assign(param))
 
         # Selected actions, tuple of 0-1 vectors
-        acts = list()
-        for a_dim in self.a_dims:
-            acts.append(tf.placeholder(tf.float32, [None, a_dim]))
-        self.acts = tuple(acts)
+        self.acts = tuple(tf.placeholder(tf.float32, [None, a_dim], f'PlaceholderAction{i}') \
+                for i, a_dim in enumerate(self.a_dims))
 
         # This gradient will be provided by the critic network
-        self.act_grad_weights = tuple(tf.placeholder(tf.float32, [None, 1]) for _ in self.a_dims)
+        self.act_grad_weights = tf.placeholder(tf.float32, [None, 1], 'GradWeights')
 
-        # Compute the objective (log action_vector and entropy)
-        self.obj = tf.reduce_sum(tf.multiply(
-                       tf.log(tf.reduce_sum(tf.multiply(self.outputs, self.acts),
-                                            reduction_indices=1, keep_dims=True)),
-                       -self.act_grad_weights)) \
-                   + ENTROPY_WEIGHT * tf.reduce_sum(tf.multiply(self.outputs,
-                                                           tf.log(self.outputs + ENTROPY_EPS)))
+        # Compute the objective (log action_vector and entropy) # Dimensions
+        actions_value = sum(tf.reduce_sum(out * act, axis = 1)
+                for out, act in zip(self.outputs, self.acts))
+        actions_obj = tf.reduce_sum(tf.log(actions_value) * -self.act_grad_weights)
+
+        entropy_value = sum(tf.reduce_sum(out * tf.log(out + ENTROPY_EPS))
+                for out in self.outputs)
+        entropy_obj = tf.reduce_sum(entropy_value)
+
+        self.obj = actions_obj + ENTROPY_WEIGHT * entropy_obj
 
         # Combine the gradients here
         self.actor_gradients = tf.gradients(self.obj, self.network_params)
@@ -127,10 +120,19 @@ class ActorNetwork(object):
 
     def create_actor_network(self):
         with tf.variable_scope('actor'):
-            return create_network(self.a_dims, self.s_lengths)
+            inputs, dense_net = create_network(self.s_lengths)
+
+            # Add one relu and one softmax output layer for each type of action
+            # The layers have as many neurons as possible choices for each action
+            outputs = list()
+            for i, a_dim in enumerate(self.a_dims):
+                out = tflearn.fully_connected(dense_net, 128, activation = 'relu', name = f'ReluAction{i}')
+                outputs.append(tflearn.fully_connected(out, a_dim, activation = 'softmax', name = f'OutputAction{i}'))
+
+            # A tuple of tensors is a valid input for most tflearn functions
+            return inputs, tuple(outputs)
 
     def train(self, inputs, acts, act_grad_weights):
-
         self.sess.run(self.optimize, feed_dict={
             self.inputs: inputs,
             self.acts: acts,
@@ -175,7 +177,7 @@ class CriticNetwork(object):
         self.lr_rate = learning_rate
 
         # Create the critic network
-        self.inputs, self.outputs = self.create_critic_network()
+        self.inputs, self.out = self.create_critic_network()
 
         # Get all network parameters
         self.network_params = \
@@ -185,19 +187,19 @@ class CriticNetwork(object):
         self.input_network_params = []
         for param in self.network_params:
             self.input_network_params.append(
-                tf.placeholder(tf.float32, shape=param.get_shape()))
+                tf.placeholder(tf.float32, shape=param.get_shape(), name = 'NetworkParam'))
         self.set_network_params_op = []
         for idx, param in enumerate(self.input_network_params):
             self.set_network_params_op.append(self.network_params[idx].assign(param))
 
         # Network target V(s)
-        self.td_target = tuple(tf.placeholder(tf.float32, [None, 1]) for _ in self.a_dims)
+        self.td_target = tf.placeholder(tf.float32, [None, 1], 'Target')
 
         # Temporal Difference, will also be weights for actor_gradients
-        self.td = tf.subtract(self.td_target, self.outputs)
+        self.td = self.td_target - self.out
 
         # Mean square error
-        self.loss = tflearn.mean_square(self.td_target, self.outputs)
+        self.loss = tflearn.mean_square(self.td_target, self.out)
 
         # Compute critic gradient
         self.critic_gradients = tf.gradients(self.loss, self.network_params)
@@ -208,7 +210,11 @@ class CriticNetwork(object):
 
     def create_critic_network(self):
         with tf.variable_scope('critic'):
-            return create_network(self.a_dims, self.s_lengths, last_layer = 'linear')
+            inputs, dense_net = create_network(self.s_lengths)
+
+            output = tflearn.fully_connected(dense_net, 1, activation = 'linear', name = 'Output')
+
+            return inputs, output
 
     def train(self, inputs, td_target):
         return self.sess.run([self.loss, self.optimize], feed_dict={
@@ -247,49 +253,34 @@ class CriticNetwork(object):
         })
 
 
-def compute_gradients(s_batch, a_batch, r_batch, terminal, actor, critic):
+def compute_gradients(state, actions, reward, terminal, actor, critic):
     """
     batch of s, a, r is from samples in a sequence
     the format is in np.array([batch_size, s/a/r_dim])
     terminal is True when sequence ends as a terminal state
     """
-    assert s_batch.shape[0] == a_batch.shape[0]
-    assert s_batch.shape[0] == r_batch.shape[0]
-    ba_size = s_batch.shape[0]
+    reward = np.reshape(reward, (1,1))
+    values = reward - critic.predict(state)
 
-    v_batch = critic.predict(s_batch)
+    actor_gradients = actor.get_gradients(state, actions, values)
+    critic_gradients = critic.get_gradients(state, reward)
 
-    R_batch = np.zeros(r_batch.shape)
-
-    if terminal:
-        R_batch[-1, 0] = 0  # terminal state
-    else:
-        R_batch[-1, 0] = v_batch[-1, 0]  # boot strap from last state
-
-    for t in reversed(xrange(ba_size - 1)):
-        R_batch[t, 0] = r_batch[t] + GAMMA * R_batch[t + 1, 0]
-
-    td_batch = R_batch - v_batch
-
-    actor_gradients = actor.get_gradients(s_batch, a_batch, td_batch)
-    critic_gradients = critic.get_gradients(s_batch, R_batch)
-
-    return actor_gradients, critic_gradients, td_batch
+    return actor_gradients, critic_gradients, values
 
 
-def discount(x, gamma):
-    """
-    Given vector x, computes a vector y such that
-    y[i] = x[i] + gamma * x[i+1] + gamma^2 x[i+2] + ...
-    """
-    out = np.zeros(len(x))
-    out[-1] = x[-1]
-    for i in reversed(xrange(len(x)-1)):
-        out[i] = x[i] + gamma*out[i+1]
-    assert x.ndim >= 1
-    # More efficient version:
-    # scipy.signal.lfilter([1],[1,-gamma],x[::-1], axis=0)[::-1]
-    return out
+#def discount(x, gamma):
+#    """
+#    Given vector x, computes a vector y such that
+#    y[i] = x[i] + gamma * x[i+1] + gamma^2 x[i+2] + ...
+#    """
+#    out = np.zeros(len(x))
+#    out[-1] = x[-1]
+#    for i in reversed(range(len(x)-1)):
+#        out[i] = x[i] + gamma*out[i+1]
+#    assert x.ndim >= 1
+#    # More efficient version:
+#    # scipy.signal.lfilter([1],[1,-gamma],x[::-1], axis=0)[::-1]
+#    return out
 
 
 def compute_entropy(x):
@@ -298,7 +289,7 @@ def compute_entropy(x):
     H(x) = - sum( p * log(p))
     """
     H = 0.0
-    for i in xrange(len(x)):
+    for i in range(len(x)):
         if 0 < x[i] < 1:
             H -= x[i] * np.log(x[i])
     return H

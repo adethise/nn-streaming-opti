@@ -13,14 +13,14 @@ class StormMetrics:
         for i in range(len(j['topologies'])):
             self.topologyIds.append(j['topologies'][i]['id'])
         self.tid = self.topologyIds[0]
-        print self.tid
+        print(self.tid)
         self.setTopology(self.tid)
 
     def setTopology(self, tid):
         url = 'http://localhost:'+self.port+'/api/v1/topology/'+tid
         response = requests.get(url)
         self.main_json = json.loads(response.content)
-    
+
     def getTopologyIds(self):
         return self.topologyIds
 
@@ -50,11 +50,11 @@ class StormMetrics:
         stats = dict()
         stats['completeLatency'] = dict()
         stats['emitted'] = dict()
-        
+
         for i in range(len(spouts)):
             stats['completeLatency'][spouts[i]] = self.getCompleteLatency(i)
             stats['emitted'][spouts[i]] = self.getSpoutEmitted(i)
-        return stats 
+        return stats
 
     def getAllBoltStats(self):
         bolts = self.getBolts()
@@ -71,7 +71,7 @@ class StormMetrics:
             stats['executeLatency'][bolts[i]] = self.getExecuteLatency(i)
             stats['emitted'][bolts[i]] = self.getBoltEmitted(i)
             stats['executed'][bolts[i]] = self.getExecuted(i)
-        return stats 
+        return stats
 
     def getCompleteLatency(self, spoutIndex):
         return self.main_json['spouts'][spoutIndex]['completeLatency']
@@ -87,7 +87,7 @@ class StormMetrics:
 
     def getExecuteLatency(self, boltIndex):
         return self.main_json['bolts'][boltIndex]['executeLatency']
-    
+
     def getBoltEmitted(self, boltIndex):
         return self.main_json['bolts'][boltIndex]['emitted']
 

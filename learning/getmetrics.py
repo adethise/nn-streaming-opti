@@ -7,8 +7,8 @@ metrics = StormMetrics("8080")
 #for example like
 #metrics.setTopology(0)
 
-print metrics.getJson()
-print metrics.getBolts()
-print metrics.getAllCapacity()
-print metrics.getAllBoltStats()
-print metrics.getAllSpoutStats()
+print('JSON:\n', metrics.getJson())
+print('Bolts:\n', metrics.getBolts())
+print('Capacity:\n', metrics.getAllCapacity())
+print('BoltStats:\n', metrics.getAllBoltStats())
+print('SpoutStats:\n', metrics.getAllSpoutStats())

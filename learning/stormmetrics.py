@@ -42,13 +42,13 @@ class TopologyRunner:
         results = StormMetrics('8080').getJson()
 
         logging.info('Saving the results...')
-        self.runs.append(experiments.Run(self.topology.name, timestamp, config, results))
+        self.runs.append(experiments.Run(self.topology.name, timestamp, params, results))
         if save:
             self.runs[-1].save()
 
         self.stop_storm()
 
-        return self.metrics(results)
+        return self.get_metrics(results)
 
     def run_storm(self, config, timestamp):
         logging.info('Creating config file...')
@@ -83,14 +83,14 @@ class TopologyRunner:
         subprocess.run([STORM_PATH, 'kill', self.topology.name, '-w', '1'])
         os.unlink(self.config_file)
 
-    def metrics(self, res):
+    def get_metrics(self, res):
         return {
-                [res['spout']['transferred']],
-                [res['spout']['completeLatency']],
-                [res['spout']['executors'], res['bolts'][0]['executors'], res['bolts'][1]['executors']],
-                [res['spout']['emitted'], res['bolts'][0]['emitted'], res['bolts'][1]['emitted']],
-                [res['bolts'][0]['processLatency'], res['bolts'][1]['processLatency']],
-                [res['bolts'][0]['capacity'], res['bolts'][1]['capacity']]
+                'throughput': [res['spout']['transferred']],
+                'full_latency': [res['spout']['completeLatency']],
+                'executors': [res['spout']['executors'], res['bolts'][0]['executors'], res['bolts'][1]['executors']],
+                'emitted': [res['spout']['emitted'], res['bolts'][0]['emitted'], res['bolts'][1]['emitted']],
+                'latency': [res['bolts'][0]['processLatency'], res['bolts'][1]['processLatency']],
+                'capacities': [res['bolts'][0]['capacity'], res['bolts'][1]['capacity']]
                 }
 
 

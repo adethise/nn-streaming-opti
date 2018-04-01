@@ -31,11 +31,13 @@ def main(args):
     metrics        = sorted(runner.metrics.keys())
     metrics_length = [runner.metrics[m] for m in metrics]
 
+    state_length   = actions_space + metrics_length
+
 
     with tf.Session() as sess, open(LOG_FILE, 'w') as log_file:
 
         # The learner instance communicates with the ML framework.
-        learner = learning.Learner(sess, actions_space, metrics_length, previous_model)
+        learner = learning.Learner(sess, actions_space, state_length, previous_model)
 
         run = None
         epoch = 0
@@ -48,10 +50,11 @@ def main(args):
             #########
             if run is not None:
                 # Extract run metrics information (in sorted order)
-                state = [run.results[metric] for metric in metrics]
+                state = [run.config[action] for action in actions] \
+                        + [run.results[metric] for metric in metrics]
             else:
                 # Fake initial metric information (don't train with those)
-                state = [l * [0] for l in metrics_length]
+                state = [l * [0] for l in actions_space + metrics_length]
 
             ##########
             # Action #

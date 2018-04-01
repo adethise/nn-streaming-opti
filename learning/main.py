@@ -49,11 +49,13 @@ def main(args):
             #########
             if run is not None:
                 # Extract run metrics information (in sorted order)
-                state = [[run.config[action] for action in actions]] \
-                        + [run.results[metric] for metric in metrics]
+                state = []
+                state.append([run.config[action] for action in actions])
+                for metric in metrics:
+                    state.append(run.results[metric])
             else:
                 # Fake initial metric information (don't train with those)
-                state = [l * [0] for l in actions_space + metrics_length]
+                state = [l * [0] for l in [len(actions)] + metrics_length]
 
             ##########
             # Action #

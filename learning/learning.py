@@ -6,6 +6,7 @@ import tensorflow as tf
 import numpy as np
 
 import a3c
+import stormmetrics
 
 ACTOR_LR_RATE = 0.0001
 CRITIC_LR_RATE = 0.001

@@ -52,7 +52,7 @@ def main(args):
                 state = []
                 state.append([run.config[action] for action in actions])
                 for metric in metrics:
-                    state.append(run.results[metric])
+                    state.append(stormmetrics.get_metrics(run.results)[metric])
             else:
                 # Fake initial metric information (don't train with those)
                 state = [l * [0] for l in [len(actions)] + metrics_length]
@@ -75,7 +75,7 @@ def main(args):
             ##########
             # Reward #
             ##########
-            reward = reward_function(run.results)
+            reward = reward_function(stormmetrics.get_metrics(run.results))
 
             log_file.write('\t'.join([
                                       str(epoch),

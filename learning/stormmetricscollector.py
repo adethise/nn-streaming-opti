@@ -8,7 +8,7 @@ class StormMetrics:
         self.port = PORT
         url = "http://localhost:"+PORT+"/api/v1/topology/summary"
         response = requests.get(url)
-        j = json.loads(response.content)
+        j = json.loads(response.content.decode())
         self.topologyIds = []
         for i in range(len(j['topologies'])):
             self.topologyIds.append(j['topologies'][i]['id'])
@@ -19,7 +19,7 @@ class StormMetrics:
     def setTopology(self, tid):
         url = 'http://localhost:'+self.port+'/api/v1/topology/'+tid
         response = requests.get(url)
-        self.main_json = json.loads(response.content)
+        self.main_json = json.loads(response.content.decode())
 
     def getTopologyIds(self):
         return self.topologyIds

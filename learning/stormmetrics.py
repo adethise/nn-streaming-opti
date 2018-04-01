@@ -5,7 +5,9 @@ import logging
 import os
 import yaml
 import subprocess
+
 import experiments
+from stormmetricscollector import StormMetrics
 
 
 STORM_PATH = os.path.join(os.environ['HOME'], 'apache-storm/bin/storm')
@@ -32,7 +34,7 @@ class TopologyRunner:
 
         bench = self.run_storm(config, timestamp)
 
-        results = {'returncode': [bench.returncode]}
+        results = StormMetrics('8080').getJson()
 
         logging.info('Saving the results...')
         self.runs.append(experiments.Run(self.topology.name, timestamp, config, results))

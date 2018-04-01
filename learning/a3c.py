@@ -53,14 +53,14 @@ def create_network(s_lengths):
 
     # Add a convolution layer for each input vector
     for i, s_len in enumerate(s_lengths):
-        splits.append(tflearn.conv_1d(inputs[:, i:i+1, :s_len], 128, 4, activation = 'relu', name = f'Input{i}'))
+        splits.append(tflearn.conv_1d(inputs[:, i:i+1, :s_len], 128, 4, activation = 'relu', name = 'Input%s' % i))
 
     # Merge all initial convolution layers
     dense_net = tflearn.merge(splits, 'concat', name = 'MergeNet')
 
     # Hidden layers
     for i in range(NETWORK_DEPTH):
-        dense_net = tflearn.conv_1d(dense_net, 128, 4, activation = 'relu', name = f'Dense{i}')
+        dense_net = tflearn.conv_1d(dense_net, 128, 4, activation = 'relu', name = 'Dense%s' % i)
 
     return inputs, dense_net
 
@@ -94,7 +94,7 @@ class ActorNetwork(object):
             self.set_network_params_op.append(self.network_params[idx].assign(param))
 
         # Selected actions, tuple of 0-1 vectors
-        self.acts = tuple(tf.placeholder(tf.float32, [None, a_dim], f'PlaceholderAction{i}') \
+        self.acts = tuple(tf.placeholder(tf.float32, [None, a_dim], 'PlaceholderAction%s' % i) \
                 for i, a_dim in enumerate(self.a_dims))
 
         # This gradient will be provided by the critic network
@@ -126,8 +126,8 @@ class ActorNetwork(object):
             # The layers have as many neurons as possible choices for each action
             outputs = list()
             for i, a_dim in enumerate(self.a_dims):
-                out = tflearn.fully_connected(dense_net, 128, activation = 'relu', name = f'ReluAction{i}')
-                outputs.append(tflearn.fully_connected(out, a_dim, activation = 'softmax', name = f'OutputAction{i}'))
+                out = tflearn.fully_connected(dense_net, 128, activation = 'relu', name = 'ReluAction%s' % i)
+                outputs.append(tflearn.fully_connected(out, a_dim, activation = 'softmax', name = 'OutputAction%s' % i))
 
             # A tuple of tensors is a valid input for most tflearn functions
             return inputs, tuple(outputs)

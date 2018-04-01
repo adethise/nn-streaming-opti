@@ -98,7 +98,7 @@ def reward_function(metrics):
     Compute the reward based on metric information about a run.
     This function defines the target QoS.
     '''
-    return -metrics[latency][0]
+    return -metrics['full_latency'][0]
 
 
 if __name__ == '__main__':

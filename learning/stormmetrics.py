@@ -9,7 +9,6 @@ import experiments
 
 
 STORM_PATH = os.path.join(os.environ['HOME'], 'apache-storm/bin/storm')
-BENCH_PATH = os.path.join(os.environ['HOME'], 'stormbenchmark/bin/stormbench')
 JAR_FILE = os.path.join(os.environ['HOME'], 'stormbenchmark/target/storm-benchmark-0.1.0-jar-with-dependencies.jar')
 
 RUN_TIME_SECONDS = 200
@@ -31,24 +30,7 @@ class TopologyRunner:
         config = self.topology.default_params.copy()
         config.update(params)
 
-        logging.info('Creating config file...')
-        config_file = os.path.join(os.getcwd(), timestamp + '.yaml')
-        with open(config_file, 'w') as _file:
-            yaml.dump(config, _file)
-
-        logging.info('Running the benchmark...')
-        bench = subprocess.Popen([
-                BENCH_PATH,
-                '-storm', STORM_PATH,
-                '-jar', JAR_FILE,
-                '-conf', config_file,
-                'storm.benchmark.tools.Runner', self.topology.classpath
-                ], universal_newlines = True)
-
-        try:
-            bench.wait(RUN_TIME_SECONDS)
-        except subprocess.TimeoutExpired:
-            bench.terminate()
+        bench = self.run_storm(config, timestamp)
 
         results = {'returncode': [bench.returncode]}
         os.unlink(config_file)
@@ -58,10 +40,39 @@ class TopologyRunner:
         if save:
             self.runs[-1].save()
 
+        self.stop_storm()
+
+        return self.runs[-1]
+
+    def run_storm(self, config, timestamp):
+        logging.info('Creating config file...')
+        conf_dir = os.getcwd()
+        conf_file = timestamp + '.yaml'
+        with open(os.path.join(conf_dir, conf_file), 'w') as _file:
+            yaml.dump(config, _file)
+
+        logging.info('Running the benchmark...')
+        os.putenv("STORM_CONF_DIR", conf_dir)
+        bench = subprocess.Popen([
+                STORM_PATH,
+                'jar', JAR_FILE,
+                '--config', conf_file,
+                'storm.benchmark.tools.Runner', self.topology.classpath
+                ], universal_newlines = True)
+
+        try:
+            bench.wait(RUN_TIME_SECONDS)
+        except subprocess.TimeoutExpired:
+            bench.terminate()
+        except KeyboardInterrupt:
+            self.stop_storm()
+
+        return bench
+
+    def stop_storm(self):
         logging.info('Killing the topology...')
         subprocess.run([STORM_PATH, 'kill', self.topology.name, '-w', '1'])
 
-        return self.runs[-1]
 
 
 def _random_config(params):

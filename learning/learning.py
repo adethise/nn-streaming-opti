@@ -103,8 +103,8 @@ class Learner:
         self.critic.apply_gradients(critic_gradient)
 
         if epoch % MODEL_SAVE_INTERVAL == 0:
-            save_path = self.saver.save(self.sess, os.path.join(SUMMARY_DIR, f'nn_model_ep_{epoch}.ckpt'))
-            logging.info(f'Model saved in file {save_path}')
+            save_path = self.saver.save(self.sess, os.path.join(SUMMARY_DIR, 'nn_model_ep_%s.ckpt' % epoch))
+            logging.info('Model saved in file %s' % save_path)
 
 
     def _metrics_to_array(self, metrics):
@@ -112,7 +112,7 @@ class Learner:
 
         for i, metric in enumerate(metrics):
             assert self.s_lengths[i] == len(metric), \
-                    f'Metric {i} has the wrong length (expected {self.s_lengths[i]}, got {len(metric)})'
+                    'Metric %s has the wrong length (expected %s, got %s)' % (i, self.s_lengths[i], len(metric))
             state[i, :len(metric)] = metric
 
         return state

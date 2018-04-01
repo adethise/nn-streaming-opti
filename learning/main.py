@@ -43,7 +43,7 @@ def main(args):
 
         # Training loop
         while max_runs is None or epoch < max_runs:
-            logging.info(f'=== Epoch: {epoch}')
+            logging.info('=== Epoch: %s' % epoch)
             #########
             # State #
             #########

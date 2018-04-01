@@ -33,7 +33,6 @@ class TopologyRunner:
         bench = self.run_storm(config, timestamp)
 
         results = {'returncode': [bench.returncode]}
-        os.unlink(config_file)
 
         logging.info('Saving the results...')
         self.runs.append(experiments.Run(self.topology.name, timestamp, config, results))
@@ -48,7 +47,9 @@ class TopologyRunner:
         logging.info('Creating config file...')
         conf_dir = os.getcwd()
         conf_file = timestamp + '.yaml'
-        with open(os.path.join(conf_dir, conf_file), 'w') as _file:
+
+        self.config_file = os.path.join(conf_dir, conf_file)
+        with open(self.config_file, 'w') as _file:
             yaml.dump(config, _file)
 
         logging.info('Running the benchmark...')
@@ -72,6 +73,7 @@ class TopologyRunner:
     def stop_storm(self):
         logging.info('Killing the topology...')
         subprocess.run([STORM_PATH, 'kill', self.topology.name, '-w', '1'])
+        os.unlink(self.config_file)
 
 
 

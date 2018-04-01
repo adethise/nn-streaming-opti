@@ -88,11 +88,11 @@ class TopologyRunner:
 def get_metrics(res):
     return {
             'throughput': [res['spouts'][0]['transferred']],
-            'full_latency': [res['spouts'][0]['completeLatency']],
+            'full_latency': [float(res['spouts'][0]['completeLatency'])],
             'executors': [res['spouts'][0]['executors'], res['bolts'][0]['executors'], res['bolts'][1]['executors']],
             'emitted': [res['spouts'][0]['emitted'], res['bolts'][0]['emitted'], res['bolts'][1]['emitted']],
-            'latency': [res['bolts'][0]['processLatency'], res['bolts'][1]['processLatency']],
-            'capacities': [res['bolts'][0]['capacity'], res['bolts'][1]['capacity']]
+            'latency': [float(res['bolts'][0]['processLatency']), float(res['bolts'][1]['processLatency'])],
+            'capacities': [float(res['bolts'][0]['capacity']), float(res['bolts'][1]['capacity'])]
             }
 
 

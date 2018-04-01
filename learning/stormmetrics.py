@@ -67,6 +67,7 @@ class TopologyRunner:
             bench.terminate()
         except KeyboardInterrupt:
             self.stop_storm()
+            raise
 
         return bench
 

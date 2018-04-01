@@ -30,7 +30,7 @@ def main(args):
     metrics        = sorted(runner.metrics.keys())
     metrics_length = [runner.metrics[m] for m in metrics]
 
-    state_length   = actions_space + metrics_length
+    state_length   = [len(actions)] + metrics_length
 
 
     with tf.Session() as sess, open(LOG_FILE, 'w') as log_file:
@@ -49,7 +49,7 @@ def main(args):
             #########
             if run is not None:
                 # Extract run metrics information (in sorted order)
-                state = [run.config[action] for action in actions] \
+                state = [[run.config[action] for action in actions]] \
                         + [run.results[metric] for metric in metrics]
             else:
                 # Fake initial metric information (don't train with those)

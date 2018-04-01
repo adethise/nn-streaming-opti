@@ -4,8 +4,7 @@ import logging
 import tensorflow as tf
 
 import experiments
-import dummy_stormmetrics as stormmetrics
-#import stormmetrics
+import stormmetrics
 import learning
 
 LOG_FILE = './agent.log'

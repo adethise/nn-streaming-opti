@@ -4,7 +4,6 @@ import numpy as np
 import tensorflow as tf
 import tflearn
 
-import env
 
 GAMMA = 0.99
 ENTROPY_WEIGHT = 0.5

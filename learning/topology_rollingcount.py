@@ -36,10 +36,10 @@ rc_default_params = {
 
 rc_conf_params = {
         'topology.workers': list(range(2 * WORKERS, 4 * WORKERS + 1, WORKERS)),
-        'component.rolling_count_bolt_num': list(range(WORKERS, 10 * WORKERS + 1, WORKERS)),
-        'component.split_bolt_num': list(range(WORKERS, 10 * WORKERS + 1, WORKERS)),
-        'component.spout_num': list(range(WORKERS, 4 * WORKERS + 1, WORKERS)),
-        'topology.acker.executors': list(range(WORKERS, 4 * WORKERS + 1, WORKERS)),
+        'component.rolling_count_bolt_num': list(range(WORKERS, 20 * WORKERS + 1, WORKERS)),
+        'component.split_bolt_num': list(range(WORKERS, 20 * WORKERS + 1, WORKERS)),
+        'component.spout_num': list(range(WORKERS, 12 * WORKERS + 1, WORKERS)),
+        'topology.acker.executors': list(range(WORKERS, 12 * WORKERS + 1, WORKERS)),
         'topology.max.spout.pending': list(range(1000, 10001, 2000)),
         'topology.worker.receiver.thread.count': list(range(1, 4, 1)),
         'topology.backpressure.enable': [False, True],
